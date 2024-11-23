@@ -1,0 +1,343 @@
+= Jedis-Mock: Java reimplementation of Redis/Valkey for white box testing
+Ivan Ponomarev
+:revealjs_theme: black
+:revealjs_customtheme: white_course.css
+:revealjs_slideNumber:
+:revealjs_history:
+:revealjs_progress:
+:encoding: UTF-8
+:lang: ru
+include::_doc_general_attributes.adoc[]
+:doctype: article
+:toclevels: 3
+:imagesdir: images
+:source-highlighter: highlightjs
+:highlightjsdir: highlight
+:icons: font
+:iconfont-remote!:
+:iconfont-name: font-awesome-4.7.0/css/font-awesome
+:revealjs_mouseWheel: true
+:revealjs_center: false
+:revealjs_transition: none
+:revealjs_width: 1600
+:revealjs_height: 900
+:stem: latexmath
+
+
+//== Часть 1. Введение
+:!figure-caption:
+
+[%notitle]
+== Who am I
+
+[cols="30a,70a"]
+|===
+|image::ivan.jpg[]
+|
+
+Ivan Ponomarev
+
+* Team Lead @ Synthesized.io
+* Teaching CS @ Northeastern University London
+
+
+|===
+
+== What is Redis/Valkey?
+
+image::logo.svg[{image-20-width}]
+image::valkey_logo.png[{image-20-width}]
+
+* **Re**mote **Di**ctionary **S**erver
+* In-memory key–value database
+* Different kinds of abstract data structures
+* Not open source since 2024 with OOS forks available, but it's a separate story...
+
+[%notitle]
+== Popularity
+
+image::overall.png[]
+https://db-engines.com/en/ranking
+
+[%notitle]
+== Popularity
+
+image::popularity.png[]
+
+https://db-engines.com/en/ranking/key-value+store
+
+== Scale of Users
+
+Twitter, AirBnB, Tinder, Yahoo, Adobe, Hulu, Amazon...
+
+(https://en.wikipedia.org/wiki/Redis#Users)
+
+== What makes Redis so popular?
+
+* Really easy to use
+* Really high performant: 10000 max clients default value (compare with the default maximum for 100 for PostgreSQL)
+* Swiss army knife: caches, queues, atomic counters, distributed locks, semaphores, Bloom filters, etc etc etc
+
+image::sak.jpg[{image-20-width}]
+
+* Price we pay: no ACID (only isolation) image:shrug.png[]
+
+
+== So how do we test?
+
+Testcontainers, of course!
+
+image::testcontainers_transparent.png[{image-30-width}]
+
+(In fact, Redis is one of the first demo examples for Testcontainers ever)
+
+== Redis mocks in different programming languages
+
+* Python: https://github.com/cunla/fakeredis-py
+* NodeJS: https://github.com/yeahoffline/redis-mock
+* **Java: https://github.com/fppt/jedis-mock**
+
+== Why mock, if we have Testcontainers?
+
+* Still, Testcontainers require Docker and some time to download and run the container. +
+Jedis-Mock requires Java only.
+* Sometimes we want to manage the reply:
+** imitate a system or network failure
+** give a deterministic answer for non-deterministic query
+
+== Why mock, if we have Testcontainers?
+
+* Sometimes we need to check the actual queries being sent
+
+[plantuml]
+----
+@startuml
+skinparam   dpi 220
+hide footbox
+Caller -> JedisMock: Request
+JedisMock -> JedisMock: Record & Verify
+JedisMock--> Caller : Response
+JedisMock--X Caller : Exception
+@enduml
+----
+
+== JedisMock history
+
+* 2017: Filipe Peliz Pinto Teixeira forked an abandoned POC repository.
+* 2019: I tried to use it in my project and soon gave up
+* 2021-now: actively developed by MIPT students under my supervision
+* 2023: I have full rights for maintaing & publishig new versions
+
+image::redis-maintainers.jpg[{image-40-width}]
+
+== JedisMock: who uses it?
+
+* Known OSS dependents: Slack API client, dropwizard.io
+
+image::users.png[]
+
+== JedisMock: who uses it?
+
+* Stable flow of incoming issues and requests.
+* 170+ stars on GitHub -- please give it a star!
+
+image::issues.png[]
+
+
+
+== Some technical details of importance
+
+* Redis is written in C (155 KLOC of C code)
+
+[gnuplot,loc,png]
+....
+set terminal png size 1000, 550  font "Helvetica,20"
+
+$Data <<EOD
+PostgreSQL   872,348
+Redis        155,214
+Jedis-mock    9,126
+EOD
+
+set title "Code size comparison"
+set ylabel "1000s of lines of code (KLOC)"
+set style data histogram
+set style histogram cluster gap 1
+set style fill solid border -1
+set boxwidth 0.9
+#set xtics rotate by -45
+set yrange [0:*]
+plot $Data using 2:xticlabels(1) with histogram title ""
+....
+
+== Some technical details of importance
+
+* Redis/Valkey heavily relies on system calls and *runs on Unix-like systems only*.
+* Redis/Valkey uses a single thread to process all the requests (thus isolation).
+
+
+== JedisMock: the idea
+
+[cols="^1a,^1a"]
+|===
+| image:sak.jpg[width=300]
+| image:sak.jpg[width=300]
+
+|*Redis data type*
+
+
+|*Java data type*
+|HMAP
+|HashMap
+|LIST
+|ArrayList
+|SET
+|HashSet
+|ZSET
+|TreeSet+HashMap
+|Bit operations
+|BitSet
+|===
+
+== JedisMock: networking&threading
+
+* `java.net.ServerSocket`
+* Each incoming client occupies a thread in `CachedThreadPool`
+* All the threads synchronize on a single lock before making changes
+* Blocking operations (like `BLPOP`) use `wait`/`notify`
+
+
+== So how do we make it similar to real Redis?
+
+* Redis: 237 commands of varying popularity (Pareto 80/20 principle applies)
+* Jedis-mock: 157 commands supported (66% and the number is growing)
+
+[gnuplot,distr1,png]
+....
+set terminal png size 1000, 200  font "Helvetica,30"
+set boxwidth 0.5 relative
+set style fill solid 0.5
+
+set yrange [0:1]
+set xlabel "implemented vs not implemented"
+
+unset key
+unset xtics
+unset ytics
+f(x)=1
+
+set xrange [1:237]
+plot (x<=157?f(x):1/0) with boxes lc 2, (x>157?f(x):1/0) with boxes lc 7
+....
+
+
+== So how do we make it similar to real Redis?
+
+* Redis: 225 commands of varying popularity (Pareto 80/20 princple applies)
+* Jedis-mock: 107 commands supported (48% and the number is growing)
+
+[gnuplot,pareto,png]
+....
+set terminal png size 1000, 600  font "Helvetica,30"
+set boxwidth 0.5 relative
+set style fill solid 0.5
+
+set yrange [0:0.75]
+set xlabel "implemented vs not implemented"
+set ylabel "use cases"
+unset key
+unset xtics
+unset ytics
+f(x)=1/(x**0.6)
+
+set xrange [1:237]
+plot (x<=157?f(x):1/0) with boxes lc 2, (x>157?f(x):1/0) with boxes lc 7
+....
+
+== How do we count it?
+
+* Redis `COMMAND` command lists all the supported commands (currently 225 of them)
+* Classes annotated `@Command(<COMMAND_NAME>)` implement commands in Jedis-mock
+
+== An automatically built fit-gap report
+
+image::supported_redis_operations.png[]
+
+== What makes us sure that commands work correctly?
+
+Comparison testing
+
+[source,java]
+----
+@TestTemplate
+public void whenHSettingOnTheSameKeys_EnsureReturnTypeIs1WhenKeysAreNew(Jedis jedis) {
+    assertEquals(1L, jedis.hset(HASH, FIELD_1, VALUE_1));
+    assertEquals(0L, jedis.hset(HASH, FIELD_1, VALUE_1));
+}
+----
+
+== What makes you sure that commands work correctly?
+
+Comparison testing
+
+image::comparison.png[{image-50-width}]
+
+
+== Native Redis E2E tests
+
+* Written in Tcl
+
+[source,tcl]
+----
+test {INCR over 32bit value} {
+    r set novar 17179869184
+    r incr novar
+} {17179869185}  
+----
+
+* 3932 tests in 200 Tcl scripts
+* we only run a subset of them, gradually increasing the number of successful "native" tests
+
+
+== Errors found by running "native" tests
+
+[source]
+----
+SET  key1 stringvalue     // puts a string to key1 
+HSET key2 subkey1 avalue  // puts a hashmap to key2
+
+GET  key1                 // returns stringvalue
+GET  key2                 // error: WRONGTYPE
+
+MGET key1 key2            // ????
+----
+
+== Errors found by running "native" tests
+
+[source]
+----
+LPOP  mylist     // returns the first element 
+                 // or null, if the list is empty
+
+BLPOP mylist 1   // returns the first element 
+                 // or waits for it for 1 second maximum
+                 
+BLPOP mylist 0   // ????
+----
+
+== What next / open questions?
+
+[%step]
+* How closely a test mock should mock 'the real thing'?
+* Are those "bugs" Jedis-mock problems or Redis spec problems / possible source of bad practices?
+* Some day we will successfully run 100% of the tests. What happens when somebody finds a bug in Jedis-mock?
+
+== Thanks for listening!
+
+Give jedis-mock a image:star.svg[width=64]!
+
+https://github.com/fppt/jedis-mock
+
+icon:envelope[size=lg] ivan@synthesized.io
+
+icon:twitter[size=lg] @inponomarev
