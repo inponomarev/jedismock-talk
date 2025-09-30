@@ -210,7 +210,7 @@ plot $Data using 2:xticlabels(1) with histogram title ""
 == So how do we make it similar to real Redis?
 
 * Redis: 246 commands of varying popularity (Pareto 80/20 principle applies)
-* Jedis-mock: 166 commands supported (66% and the number is growing)
+* Jedis-mock: 166 commands supported (67% and the number is growing)
 
 [gnuplot,distr1,png]
 ....
