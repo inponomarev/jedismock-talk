@@ -139,7 +139,7 @@ image::users.png[]
 == JedisMock: who uses it?
 
 * Stable flow of incoming issues and requests.
-* 170+ stars on GitHub -- please give it a star!
+* 180+ stars on GitHub -- please give it a star!
 
 image::issues.png[]
 
@@ -209,8 +209,8 @@ plot $Data using 2:xticlabels(1) with histogram title ""
 
 == So how do we make it similar to real Redis?
 
-* Redis: 237 commands of varying popularity (Pareto 80/20 principle applies)
-* Jedis-mock: 157 commands supported (66% and the number is growing)
+* Redis: 246 commands of varying popularity (Pareto 80/20 principle applies)
+* Jedis-mock: 166 commands supported (66% and the number is growing)
 
 [gnuplot,distr1,png]
 ....
@@ -226,15 +226,15 @@ unset xtics
 unset ytics
 f(x)=1
 
-set xrange [1:237]
-plot (x<=157?f(x):1/0) with boxes lc 2, (x>157?f(x):1/0) with boxes lc 7
+set xrange [1:246]
+plot (x<=166?f(x):1/0) with boxes lc 2, (x>166?f(x):1/0) with boxes lc 7
 ....
 
 
 == So how do we make it similar to real Redis?
 
-* Redis: 225 commands of varying popularity (Pareto 80/20 princple applies)
-* Jedis-mock: 107 commands supported (48% and the number is growing)
+* Redis: 246 commands of varying popularity (Pareto 80/20 princple applies)
+* Jedis-mock: 166 commands supported (67% and the number is growing)
 
 [gnuplot,pareto,png]
 ....
@@ -250,8 +250,8 @@ unset xtics
 unset ytics
 f(x)=1/(x**0.6)
 
-set xrange [1:237]
-plot (x<=157?f(x):1/0) with boxes lc 2, (x>157?f(x):1/0) with boxes lc 7
+set xrange [1:246]
+plot (x<=166?f(x):1/0) with boxes lc 2, (x>166?f(x):1/0) with boxes lc 7
 ....
 
 == How do we count it?
