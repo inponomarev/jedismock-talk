@@ -132,9 +132,14 @@ image::redis-maintainers.jpg[{image-40-width}]
 
 == JedisMock: who uses it?
 
-* Known OSS dependents: Slack API client, dropwizard.io
-
-image::users.png[]
+* Github "used by": 800+ repositories
+* Some of notable users include:
+** `YunaiV/yudao-cloud` (18k stars)
+** `prestodb/presto` (17k stars)
+** `apache/druid` (14k stars)
+** `dropwizard/dropwizard-redis/`  (part of dropwizard.io ecosystem, 7k stars)
+** `slackapi/java-slack-sdk/`  (part of Slack ecosystem)
+** `GoogleCloudPlatform/DataflowTemplates` (1.3k stars, project of cloud.google.com)
 
 == JedisMock: who uses it?
 
